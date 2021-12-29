@@ -4,11 +4,33 @@ import (
 	"encoding/hex"
 	"log"
 	"net"
+
+	"golang.org/x/net/ipv4"
 )
 
 const (
 	maxDSz = 8192
 )
+
+// listen2 attempt to join all interface groups
+func listen2(conn *net.UDPConn, addr *net.UDPAddr) {
+	p := ipv4.NewPacketConn(conn)
+	intfs, err := net.Interfaces()
+	if err != nil {
+		log.Println("couldn't get interfaces for joining,", err)
+	}
+
+	for _, i := range intfs {
+		if i.Name == "lo" { // doesn't seem to show up anyways
+			continue
+		}
+		log.Println("joining", i.Name, "...")
+		if err := p.JoinGroup(&i, addr); err != nil {
+			log.Println("group join err", err)
+		}
+		// defer p.LeaveGroup(&i, &addr)
+	}
+}
 
 func Listen(address string, handler func(*net.UDPAddr, int, []byte)) {
 	addr, err := net.ResolveUDPAddr("udp4", address)
@@ -20,6 +42,8 @@ func Listen(address string, handler func(*net.UDPAddr, int, []byte)) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer conn.Close()
+	listen2(conn, addr)
 
 	conn.SetReadBuffer(maxDSz)
 

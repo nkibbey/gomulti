@@ -26,6 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal(":( ", err)
 	}
+	defer conn.Close()
 
 	for {
 		t := fmt.Sprintf("%v,\n", time.Now())
