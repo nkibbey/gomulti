@@ -1,4 +1,5 @@
 LEN := 0
+IMG_REPO := gomulti
 
 ifeq ($(shell test -d .git; echo $$?), 0)
   ifeq ($(origin CI_COMMIT_SHA), undefined)
@@ -19,11 +20,29 @@ ifeq ($(shell test -d .git; echo $$?), 0)
   endif
 endif
 
+define DOCKFILE
+FROM golang:1.17-alpine
+COPY bin/* /go/bin/
+ENTRYPOINT ["/go/bin/goreel"]
+endef
+export DOCKFILE
+
 build:
 	@mkdir -p bin
 	go build -ldflags="-X 'main.Version=$(VER)' -X 'main.GitCommit=$(CI_COMMIT_SHA)' -X 'main.BuildTime=$$(date)'" -tags netgo -o bin ./...
 
+oci: build
+	@echo -e "$$DOCKFILE" > Dockerfile
+	sudo docker build . --tag $(IMG_REPO):latest
+	-rm Dockerfile
+
+# in case you also want to tag with version
+ociV: build
+	@echo -e "$$DOCKFILE" > Dockerfile
+	sudo docker build . --tag $(IMG_REPO):$(VER) --tag $(IMG_REPO):latest
+	-rm Dockerfile
+
 clean:
 	@rm -rf bin
 
-all: clean build
+all: clean build oci
