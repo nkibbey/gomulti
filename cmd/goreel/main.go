@@ -2,10 +2,21 @@ package main
 
 import (
 	"encoding/hex"
+	"flag"
+	"fmt"
 	"log"
 	"net"
 
 	"golang.org/x/net/ipv4"
+)
+
+var (
+	PrintVersion = flag.Bool("v", false, "Display build info and exit")
+	Address      = flag.String("a", "239.6.0.2:6666", "Address to cast to")
+
+	Version   = "development"
+	GitCommit = "development"
+	BuildTime = "development"
 )
 
 const (
@@ -67,6 +78,17 @@ func msgHandler(src *net.UDPAddr, n int, b []byte) {
 	}
 }
 
+// buildInfo provides information about this build
+func buildInfo() string {
+	return fmt.Sprintf("Version: %s\nBuild Time: %s\nGitCommit: %s", Version, BuildTime, GitCommit)
+}
+
 func main() {
-	Listen("239.6.0.2:6666", msgHandler)
+	flag.Parse()
+	if *PrintVersion {
+		log.Printf("------BUILD INFO-----\n%s\n-----------------------------------------", buildInfo())
+		return
+	}
+
+	Listen(*Address, msgHandler)
 }
