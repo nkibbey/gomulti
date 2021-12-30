@@ -1,5 +1,6 @@
 LEN := 0
 IMG_REPO := gomulti
+DOCKER_REPO := nkibbey/gomulti
 
 ifeq ($(shell test -d .git; echo $$?), 0)
   ifeq ($(origin CI_COMMIT_SHA), undefined)
@@ -44,5 +45,12 @@ ociV: build
 
 clean:
 	@rm -rf bin
+
+push: oci
+	sudo docker push $(IMG_REPO) $(DOCKER_REPO)
+
+pushV: ociV
+	sudo docker push $(IMG_REPO) $(DOCKER_REPO)
+	sudo docker push $(IMG_REPO):$(VER) $(DOCKER_REPO):$(VER)
 
 all: clean build oci
