@@ -23,9 +23,7 @@ const (
 	maxDSz = 8192
 )
 
-// listen2 attempt to join all interface groups
-func listen2(conn *net.UDPConn, addr *net.UDPAddr) {
-	p := ipv4.NewPacketConn(conn)
+func joinBroadcastInterfaces(p *ipv4.PacketConn, addr *net.UDPAddr) {
 	intfs, err := net.Interfaces()
 	if err != nil {
 		log.Println("couldn't get interfaces for joining,", err)
@@ -34,16 +32,20 @@ func listen2(conn *net.UDPConn, addr *net.UDPAddr) {
 	for _, i := range intfs {
 		if i.Name == "lo" { // doesn't seem to show up anyways
 			continue
+		} else if i.Flags&net.FlagMulticast == 0 {
+			log.Println("skipping", i.Name, "because intf does not have multicast ->", i.Flags)
+			continue
 		}
-		log.Println("joining", i.Name, "...")
+
+		p.LeaveGroup(&i, addr) // in case it was already joined in net.listenmulticastudp
+		log.Println("joining", i.Name, ", index", i.Index, "...")
 		if err := p.JoinGroup(&i, addr); err != nil {
 			log.Println("group join err", err)
 		}
-		// defer p.LeaveGroup(&i, &addr)
 	}
 }
 
-func Listen(address string, handler func(*net.UDPAddr, int, []byte)) {
+func Listen(address string) {
 	addr, err := net.ResolveUDPAddr("udp4", address)
 	if err != nil {
 		log.Fatal(err)
@@ -54,27 +56,39 @@ func Listen(address string, handler func(*net.UDPAddr, int, []byte)) {
 		log.Fatal(err)
 	}
 	defer conn.Close()
-	listen2(conn, addr)
+
+	p := ipv4.NewPacketConn(conn)
+	joinBroadcastInterfaces(p, addr)
 
 	conn.SetReadBuffer(maxDSz)
 
-	for {
-		buf := make([]byte, maxDSz)
-		n, src, err := conn.ReadFromUDP(buf)
-		if err != nil {
-			log.Fatal("readudp fail", err)
-		}
-
-		handler(src, n, buf)
+	if err := p.SetControlMessage(ipv4.FlagInterface, true); err != nil {
+		log.Println("couldn't set cm for receive interface info because", err)
 	}
+
+	readConn(p, maxDSz)
+	p.Close()
 }
 
-func msgHandler(src *net.UDPAddr, n int, b []byte) {
-	log.Println(n, "bytes read from", src)
-	if len(b) > 8 {
-		log.Printf("%s", b[8:])
-	} else {
-		log.Println("UNKNOWN UDP DATAGRAM: ", hex.Dump(b[:n]))
+func readConn(p *ipv4.PacketConn, bufSz int) {
+	for {
+		buf := make([]byte, bufSz)
+		n, cm, src, err := p.ReadFrom(buf)
+		if err != nil {
+			log.Fatal("readfrom fail", err)
+		}
+
+		if cm != nil {
+			log.Println(n, "bytes read from", src, "on interface:", cm.IfIndex)
+		} else { // shouldn't be hit if setcontrolmessage worked
+			log.Println(n, "bytes read from", src)
+		}
+
+		if len(buf) > 8 {
+			log.Printf("%s", buf[8:])
+		} else {
+			log.Println("UNKNOWN UDP DATAGRAM: ", hex.Dump(buf[:n]))
+		}
 	}
 }
 
@@ -90,5 +104,5 @@ func main() {
 		return
 	}
 
-	Listen(*Address, msgHandler)
+	Listen(*Address)
 }
