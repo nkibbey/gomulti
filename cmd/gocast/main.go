@@ -5,6 +5,9 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"golang.org/x/net/ipv4"
+
 )
 
 func NewUDPConn(addr string) (*net.UDPConn, error) {
@@ -22,11 +25,13 @@ func NewUDPConn(addr string) (*net.UDPConn, error) {
 }
 
 func main() {
-	conn, err := NewUDPConn("239.6.0.2:6666")
+	conn, err := NewUDPConn("238.6.0.2:6666")
 	if err != nil {
 		log.Fatal(":( ", err)
 	}
 	defer conn.Close()
+	p := ipv4.NewPacketConn(conn)
+	p.SetMulticastTTL(3)
 
 	for {
 		t := fmt.Sprintf("%v,\n", time.Now())

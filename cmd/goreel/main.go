@@ -68,5 +68,5 @@ func msgHandler(src *net.UDPAddr, n int, b []byte) {
 }
 
 func main() {
-	Listen("239.6.0.2:6666", msgHandler)
+	Listen("238.6.0.2:6666", msgHandler)
 }
