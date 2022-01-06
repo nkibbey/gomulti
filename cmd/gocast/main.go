@@ -5,9 +5,7 @@ import (
 	"log"
 	"net"
 	"time"
-
 	"golang.org/x/net/ipv4"
-
 )
 
 func NewUDPConn(addr string) (*net.UDPConn, error) {
@@ -33,8 +31,11 @@ func main() {
 	p := ipv4.NewPacketConn(conn)
 	p.SetMulticastTTL(3)
 
+	p := ipv4.NewPacketConn(conn)
+	p.SetMulticastTTL(3)
+
 	for {
-		t := fmt.Sprintf("%v,\n", time.Now())
+		t := fmt.Sprintf(time.Now().Format(time.RFC3339))
 		log.Printf("sending: %s", t)
 		conn.Write([]byte(t))
 		time.Sleep(1 * time.Second)
