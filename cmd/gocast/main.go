@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
+	"golang.org/x/net/ipv4"
 	"log"
 	"net"
 	"time"
-	"golang.org/x/net/ipv4"
 )
 
 func NewUDPConn(addr string) (*net.UDPConn, error) {
@@ -28,9 +28,6 @@ func main() {
 		log.Fatal(":( ", err)
 	}
 	defer conn.Close()
-	p := ipv4.NewPacketConn(conn)
-	p.SetMulticastTTL(3)
-
 	p := ipv4.NewPacketConn(conn)
 	p.SetMulticastTTL(3)
 
