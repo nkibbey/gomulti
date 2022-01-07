@@ -54,7 +54,7 @@ func main() {
 	p.SetMulticastTTL(3)
 
 	for {
-		t := fmt.Sprintf(time.Now().Format(time.RFC3339))
+		t := fmt.Sprintf("%v", time.Now().Format(time.RFC3339))
 		log.Printf("sending: %s", t)
 		conn.Write([]byte(t))
 		time.Sleep(1 * time.Second)
