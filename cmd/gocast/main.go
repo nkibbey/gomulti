@@ -6,11 +6,13 @@ import (
 	"log"
 	"net"
 	"time"
+
+	"golang.org/x/net/ipv4"
 )
 
 var (
 	PrintVersion = flag.Bool("v", false, "Display build info and exit")
-	Address      = flag.String("a", "239.6.0.2:6666", "Address to cast to")
+	Address      = flag.String("a", "238.6.0.2:6666", "Address to cast to")
 
 	Version   = "development"
 	GitCommit = "development"
@@ -48,9 +50,11 @@ func main() {
 		log.Fatal(":( ", err)
 	}
 	defer conn.Close()
+	p := ipv4.NewPacketConn(conn)
+	p.SetMulticastTTL(3)
 
 	for {
-		t := fmt.Sprintf("%v\n", time.Now())
+		t := fmt.Sprintf("%v", time.Now().Format(time.RFC3339))
 		log.Printf("sending: %s", t)
 		conn.Write([]byte(t))
 		time.Sleep(1 * time.Second)
